@@ -15,10 +15,13 @@ services:
     container_name: prometheus
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml  # 🔄 BU SATIR
+
     ports:
       - "9090:9090"
     networks:
       - monitoring
+
 
   grafana:
     image: grafana/grafana
@@ -31,6 +34,14 @@ services:
       - prometheus
     networks:
       - monitoring
+  alertmanager:
+    image: prom/alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
 
 networks:
   monitoring:

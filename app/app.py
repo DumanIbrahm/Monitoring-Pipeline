@@ -1,36 +1,44 @@
 from flask import Flask, jsonify
-from prometheus_client import Counter, generate_latest
+from prometheus_flask_exporter import PrometheusMetrics
+import logging
+from prometheus_client import Counter
+
 import logging
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler("app.log"),  # → docker container içindeyken erişim için bind mount yapman gerekebilir
+        logging.StreamHandler()
+    ]
+)
+
+
 app = Flask(__name__)
+metrics = PrometheusMetrics(app)
+error_counter = Counter('flask_app_errors_total', 'Total number of errors in Flask app')
+# Manual exception counter
+from prometheus_client import Counter
 
-# Logging ayarı
-logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
-
-# Prometheus metrikleri
-REQUEST_COUNT = Counter('app_request_count', 'Toplam istek sayısı', ['endpoint'])
-
-@app.route('/')
-def home():
-    REQUEST_COUNT.labels(endpoint='/').inc()
-    app.logger.info('Ana sayfa görüntülendi.')
-    return 'Hello, DevOps!'
+@app.route("/")
+def index():
+    app.logger.info("Index endpoint hit")
+    return jsonify({"message": "Welcome to the main page!"})
 
 @app.route('/health')
 def health():
-    REQUEST_COUNT.labels(endpoint='/health').inc()
-    app.logger.info('Health endpoint çağrıldı.')
-    return jsonify(status='UP'), 200
+    logging.info("Health check passed.")
+    return jsonify({"status": "healthy"}), 200
 
 @app.route('/error')
 def error():
-    REQUEST_COUNT.labels(endpoint='/error').inc()
-    app.logger.error('Simüle hata oluştu.')
-    return jsonify(error='Simulated error'), 500
+    logging.error("Error endpoint triggered!")
+    error_counter.inc()  # ← Metric artışı
+    raise Exception("Something went wrong!")
 
-@app.route('/metrics')
-def metrics():
-    return generate_latest(), 200, {'Content-Type': 'text/plain; version=0.0.4; charset=utf-8'}
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

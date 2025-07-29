@@ -1,0 +1,13 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'console_alert'
+
+receivers:
+  - name: 'console_alert'
+    webhook_configs:
+      - url: 'http://host.docker.internal:5001/alert'
+        send_resolved: true
+
+

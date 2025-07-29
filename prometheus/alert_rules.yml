@@ -1,0 +1,11 @@
+groups:
+  - name: example-alert
+    rules:
+      - alert: HighErrorRate
+        expr: increase(flask_app_errors_total[1m]) > 1
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected on Flask app"
+          description: "More than 1 error in the last minute"
